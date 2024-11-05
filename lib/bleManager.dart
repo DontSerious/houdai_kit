@@ -146,17 +146,13 @@ class BLEManager {
     });
 
     subscription = characteristic.onValueReceived.listen((value) async {
-      final String data = utf8.decode(value);
-
-      if (data == "START") {
-        buffer.clear();
-      } else if (data == 'END') {
+      if (value.length == 5 && utf8.decode(value) == "START") {
+        await file.writeAsBytes([], mode: FileMode.write); // Clear file
+      } else if (value.length == 3 && utf8.decode(value) == "END") {
         completer.complete(filePath);
         subscription?.cancel();
       } else {
-        buffer.write(data);
-        await file.writeAsString(buffer.toString(), mode: FileMode.append);
-        buffer.clear();
+        await file.writeAsBytes(value, mode: FileMode.append);
       }
     });
 
