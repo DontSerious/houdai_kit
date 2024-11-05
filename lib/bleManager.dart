@@ -3,8 +3,10 @@ library houdai_kit;
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:path_provider/path_provider.dart';
 
 typedef BleOperation<T> = Future<T> Function();
 
@@ -126,6 +128,43 @@ class BLEManager {
     await BleRequestQueue().addOperation(() async {
       await characteristic.write(utf8.encode('END'));
     });
+  }
+
+  Future<String> receiveFile(String uuid, String fileName) async {
+    final characteristic = _characteristicMap[uuid]!;
+    final Completer<String> completer = Completer<String>();
+    final StringBuffer buffer = StringBuffer();
+    StreamSubscription<List<int>>? subscription;
+
+    final tmpDir = await getTemporaryDirectory();
+    final filePath = '${tmpDir.path}/$fileName';
+    final file = File(filePath);
+    await file.create();
+
+    await BleRequestQueue().addOperation(() async {
+      await characteristic.setNotifyValue(true);
+    });
+
+    subscription = characteristic.onValueReceived.listen((value) async {
+      final String data = utf8.decode(value);
+
+      if (data == "START") {
+        buffer.clear();
+      } else if (data == 'END') {
+        completer.complete(filePath);
+        subscription?.cancel();
+      } else {
+        buffer.write(data);
+        await file.writeAsString(buffer.toString(), mode: FileMode.append);
+        buffer.clear();
+      }
+    });
+
+    await BleRequestQueue().addOperation(() async {
+      await characteristic.read();
+    });
+
+    return completer.future;
   }
 
   Future<String> receiveFragment(String uuid) async {

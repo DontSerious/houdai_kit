@@ -1,6 +1,6 @@
 name: houdai_kit
 description: "kit tools."
-version: 0.0.1
+version: 0.0.2
 homepage:
 
 environment:
@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_blue_plus: ^1.32.12
+  path_provider: ^2.0.0
 
 dev_dependencies:
   flutter_test:
